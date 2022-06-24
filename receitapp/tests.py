@@ -1,11 +1,13 @@
 from django.test import TestCase
 from django.db import IntegrityError
 from receitapp.models import Receita, Categoria
+from receitapp.validators.model_validator import (RegexValidatorTempoPreparo
+, verifica_se_imagem_valida)
 
 
 class ReceitaModelTestCase(TestCase):
     ''' Classe de testes para o modelo de receita '''
-    
+
     def setUp(self):
         # Dificuldade choices
         self.nivel_dificuldade = [
@@ -25,10 +27,9 @@ class ReceitaModelTestCase(TestCase):
             dificuldade=self.nivel_dificuldade,
             categoria=Categoria.objects.create(nome='Categoria')
         )
-    
+
     def test_receita_tipo_campos(self):
         ''' teste para validar se campos de receita recebem os tipos corretos '''
-        
         receita = self.receita
         self.assertIsInstance(receita.nome, str)
         self.assertIsInstance(receita.preparada, bool)
@@ -40,7 +41,6 @@ class ReceitaModelTestCase(TestCase):
 
     def test_se_receita_e_valida(self):
         ''' teste para validar se campos estao armazenando os valores corretos '''
-        
         receita = self.receita
         self.assertIsInstance(receita, Receita)
         self.assertEqual(receita.preparada, False)
@@ -52,12 +52,19 @@ class ReceitaModelTestCase(TestCase):
         self.assertEqual(receita.categoria, Categoria.objects.get(nome='Categoria'))
 
     def test_receita_tempo_preparo_e_valido(self):
-        pass
+        ''' teste para verificar excessao se formato de tempo de preparo for invalido '''
+        with self.assertRaises(Exception):
+            RegexValidatorTempoPreparo('02:02:00')
+
+    def test_imagem_formato_e_valido(self):
+        ''' teste para verificar se usuário está de fato tentando salvar uma imagem válida '''
+        with self.assertRaises(Exception):
+            verifica_se_imagem_valida('arquivo.mp4')
 
 
 class CategoriaModelTestCase(TestCase):
     ''' Classe de testes para o modelo de categoria '''
-    
+
     def setUp(self):
         self.categoria = Categoria(
             nome='Salgado'
@@ -65,16 +72,19 @@ class CategoriaModelTestCase(TestCase):
 
     def test_se_categoria_e_unica(self):
         ''' teste para verificar se categoria sobe excessao ao tentar salvar uma que ja existe '''
-
         Categoria.objects.create(nome='Salgado')
         with self.assertRaises(IntegrityError):
             Categoria.objects.create(nome='Salgado')
 
     def test_categoria_tipo_campos(self):
         ''' teste para validar se campos de categoria recebem os tipos corretos '''
-
         self.assertIsInstance(self.categoria.nome, str)
-        
+
     def test_if_categoria_e_valida(self):
         ''' teste para validar se campos estao armazenando os valores corretos '''
         self.assertEqual(self.categoria.nome, 'Salgado')
+
+    def test_verifica_se_categoria_e_capitalizada_ao_salvar(self):
+        ''' verifica se nome de cateogoria e capitalizado ao ser salvo '''
+        salgados = Categoria.objects.create(nome='salgados')
+        self.assertEqual(salgados.nome, 'Salgados')
